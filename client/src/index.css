@@ -119,6 +119,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "DM Sans", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -130,6 +133,12 @@
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button, a, input, textarea, select {
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
 
