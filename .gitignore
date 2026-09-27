@@ -44,6 +44,8 @@ pids
 *.pid
 *.seed
 *.pid.lock
+.voiceink_tmp/
+outputs/
 *.bak
 
 # Coverage directory used by tools like istanbul
