@@ -71,7 +71,8 @@ def get_video_url(share_url: str) -> tuple[str, str]:
     raw_json = match.group(1).strip().rstrip(";")
     data: dict[str, Any] = json.loads(raw_json)
     item = data["loaderData"]["video_(id)/page"]["videoInfoRes"]["item_list"][0]
-    video_url = item["video"]["play_addr"]["url_list"][0].replace("playwm", "play")
+    # 这里只需要视频中的音频内容，不做去水印或画面处理。
+    video_url = item["video"]["play_addr"]["url_list"][0]
     return video_url, video_id
 
 
@@ -193,13 +194,15 @@ def infer(share_info: str, language: str):
         audio_path = extract_audio(video_path, work_dir / "audio.wav")
         result = transcribe_audio(audio_path, language)
         txt_path, srt_path, transcript = write_transcripts(result, video_id)
+        audio_output = OUTPUT_DIR / f"{video_id}.wav"
+        audio_output.write_bytes(audio_path.read_bytes())
 
         status = (
             f"完成：{len(normalize_segments(result))} 个片段，"
             f"语言 {result.get('language', '未知')}，"
             f"时长 {float(result.get('duration', 0)):.1f} 秒"
         )
-        return status, str(video_path), transcript, [str(txt_path), str(srt_path)]
+        return status, str(audio_output), transcript, [str(txt_path), str(srt_path), str(audio_output)]
     except Exception as exc:
         raise gr.Error(f"处理失败：{exc}") from exc
     finally:
@@ -213,7 +216,7 @@ def build_app() -> gr.Blocks:
     with gr.Blocks(title="抖音视频转文字") as demo:
         gr.Markdown(
             """# 抖音视频转文字\n\n"
-            "抖音链接 → 下载视频 → 提取音频 → Whisper / ASR 转写 → 生成文字稿"""
+            "抖音链接 → 获取视频 → 提取音频 → Whisper / ASR 转写 → 生成文字稿"""
         )
         with gr.Row():
             share_input = gr.Textbox(
@@ -229,7 +232,7 @@ def build_app() -> gr.Blocks:
         run_button = gr.Button("开始转写", variant="primary")
         status = gr.Textbox(label="状态", interactive=False)
         with gr.Row():
-            video = gr.Video(label="下载的视频")
+            video = gr.Audio(label="提取的音频", type="filepath")
             transcript = gr.Textbox(label="文字稿（带时间戳）", lines=18)
         files = gr.Files(label="下载文字稿（TXT / SRT）")
         run_button.click(
