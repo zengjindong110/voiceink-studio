@@ -194,6 +194,8 @@ def infer(share_info: str, language: str):
         audio_path = extract_audio(video_path, work_dir / "audio.wav")
         result = transcribe_audio(audio_path, language)
         txt_path, srt_path, transcript = write_transcripts(result, video_id)
+        video_output = OUTPUT_DIR / f"{video_id}.mp4"
+        video_output.write_bytes(video_path.read_bytes())
         audio_output = OUTPUT_DIR / f"{video_id}.wav"
         audio_output.write_bytes(audio_path.read_bytes())
 
@@ -202,7 +204,9 @@ def infer(share_info: str, language: str):
             f"语言 {result.get('language', '未知')}，"
             f"时长 {float(result.get('duration', 0)):.1f} 秒"
         )
-        return status, str(audio_output), transcript, [str(txt_path), str(srt_path), str(audio_output)]
+        return status, str(video_output), str(audio_output), transcript, [
+            str(video_output), str(audio_output), str(txt_path), str(srt_path)
+        ]
     except Exception as exc:
         raise gr.Error(f"处理失败：{exc}") from exc
     finally:
@@ -232,13 +236,14 @@ def build_app() -> gr.Blocks:
         run_button = gr.Button("开始转写", variant="primary")
         status = gr.Textbox(label="状态", interactive=False)
         with gr.Row():
-            video = gr.Audio(label="提取的音频", type="filepath")
+            video = gr.Video(label="获取的视频")
+            audio = gr.Audio(label="提取的音频", type="filepath")
             transcript = gr.Textbox(label="文字稿（带时间戳）", lines=18)
         files = gr.Files(label="下载文字稿（TXT / SRT）")
         run_button.click(
             infer,
             inputs=[share_input, language],
-            outputs=[status, video, transcript, files],
+            outputs=[status, video, audio, transcript, files],
         )
         gr.Markdown(
             "提示：请确保你有权下载和转写对应内容。ASR_API_URL 可指向任意兼容 Whisper 的接口。"
